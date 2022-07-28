@@ -18,7 +18,7 @@ pub fn syslog(ctx: TracePointContext) -> u32 {
 }
 
 unsafe fn try_syslog(ctx: TracePointContext) -> Result<u32, u32> {
-    // Parsing the arguments
+    // Parsing the arguments from raw_syscalls/sys_enter
     let args = slice::from_raw_parts(ctx.as_ptr() as *const usize, 2);
 
     let syscall     = args[1] as u64;
@@ -26,7 +26,12 @@ unsafe fn try_syslog(ctx: TracePointContext) -> Result<u32, u32> {
     let message = ctx.command().map_err(|e| e as u32)?;
     let message    = core::str::from_utf8_unchecked(&message[..]);
 
-    info!(&ctx, "syscall: {} | pid: {} | message: {}",syscall,pid,message);
+    /*
+        id    : syscall id
+        pid   : process pid of process calling the syscall
+        binary: binary ran during the syscall
+    */
+    info!(&ctx, "id: {} | pid: {} | binary: {}",syscall,pid,message);
 
     Ok(0)
 }
