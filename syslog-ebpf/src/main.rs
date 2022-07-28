@@ -43,7 +43,7 @@ u64 bpf_ktime_get_ns(void)
         pid   : process pid of process calling the syscall
         binary: binary ran during the syscall
     */
-    info!(&ctx, "ts: {} | id: {} | pid: {} | binary: {}",bpf_ktime_get_ns() - ts,syscall,pid,message);
+    info!(&ctx, "ts: {}ns | id: {} | pid: {} | binary: {}",bpf_ktime_get_ns() - ts,syscall,pid,message);
 
     Ok(0)
 }
