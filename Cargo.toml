@@ -1,0 +1,2 @@
+[workspace]
+members = ["syslog", "syslog-common", "xtask"]
