@@ -4,6 +4,7 @@
 use core::slice;
 
 use aya_bpf::{
+    helpers::bpf_ktime_get_ns,
     macros::tracepoint,
     programs::TracePointContext, BpfContext,
 };
@@ -20,7 +21,18 @@ pub fn syslog(ctx: TracePointContext) -> u32 {
 unsafe fn try_syslog(ctx: TracePointContext) -> Result<u32, u32> {
     // Parsing the arguments from raw_syscalls/sys_enter
     let args = slice::from_raw_parts(ctx.as_ptr() as *const usize, 2);
+    
+/*
+u64 bpf_ktime_get_ns(void)
 
+              Description
+                     Return the time elapsed since system boot, in
+                     nanoseconds.  Does not include time the system was
+                     suspended.  See: clock_gettime(CLOCK_MONOTONIC)
+
+              Return Current ktime.
+*/
+    let ts          = unsafe { bpf_ktime_get_ns() };
     let syscall     = args[1] as u64;
     let pid         = ctx.pid();
     let message = ctx.command().map_err(|e| e as u32)?;
@@ -31,7 +43,7 @@ unsafe fn try_syslog(ctx: TracePointContext) -> Result<u32, u32> {
         pid   : process pid of process calling the syscall
         binary: binary ran during the syscall
     */
-    info!(&ctx, "id: {} | pid: {} | binary: {}",syscall,pid,message);
+    info!(&ctx, "ts: {} | id: {} | pid: {} | binary: {}",bpf_ktime_get_ns() - ts,syscall,pid,message);
 
     Ok(0)
 }
