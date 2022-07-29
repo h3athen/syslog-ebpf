@@ -5,15 +5,24 @@ use core::slice;
 
 use aya_bpf::{
     helpers::bpf_ktime_get_ns,
-    macros::tracepoint,
+    macros::{map,tracepoint},
+    maps::{PerfEventArray},
     programs::TracePointContext, BpfContext,
 };
 use aya_log_ebpf::info;
+use syslog_common::SysCallLog;
 
+// Create EVENTS of PerfEventArray type to map struct SysCallLog
+#[map(name = "EVENTS")]
+static mut EVENTS: PerfEventArray<SysCallLog> =
+    PerfEventArray::<SysCallLog>::with_max_entries(1024, 0);
+
+
+/*---------------------------------------------------------------------------*/    
 #[tracepoint(name="syslog")]
 pub fn syslog(ctx: TracePointContext) -> u32 {
     match unsafe { try_syslog(ctx) } {
-        Ok(ret) => ret,
+        Ok(ret)  => ret,
         Err(ret) => ret,
     }
 }
@@ -32,19 +41,26 @@ u64 bpf_ktime_get_ns(void)
 
               Return Current ktime.
 */
-    let ts          = unsafe { bpf_ktime_get_ns() };
+    let ts          = bpf_ktime_get_ns();
     let syscall     = args[1] as u64;
     let pid         = ctx.pid();
-    let message = ctx.command().map_err(|e| e as u32)?;
-    let message    = core::str::from_utf8_unchecked(&message[..]);
+    let pname   = ctx.command().map_err(|e| e as u32)?;
+    let pname      = core::str::from_utf8_unchecked(&pname[..]);
 
     /*
+        ts    : time stamp
         id    : syscall id
-        pid   : process pid of process calling the syscall
-        binary: binary ran during the syscall
+        pid   : pid of process calling the syscall
+        pname : process name
     */
-    info!(&ctx, "ts: {}ns | id: {} | pid: {} | binary: {}",bpf_ktime_get_ns() - ts,syscall,pid,message);
-
+    let logs = SysCallLog {
+        ts,
+        syscall,
+        pid,
+        pname,
+    };
+    info!(&ctx, "ts: {}ns | id: {} | pid: {} | pname: {}",bpf_ktime_get_ns() - ts,syscall,pid,pname);
+    EVENTS.output(&ctx, &logs, 0);
     Ok(0)
 }
 
