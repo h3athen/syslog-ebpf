@@ -44,8 +44,8 @@ u64 bpf_ktime_get_ns(void)
     let ts          = bpf_ktime_get_ns();
     let syscall     = args[1] as u64;
     let pid         = ctx.pid();
-    let pname   = ctx.command().map_err(|e| e as u32)?;
-    let pname      = core::str::from_utf8_unchecked(&pname[..]);
+    let pname_bytes= ctx.command().map_err(|e| e as u32)?;
+    let pname     = core::str::from_utf8_unchecked(&pname_bytes[..]);
 
     /*
         ts    : time stamp
@@ -57,7 +57,7 @@ u64 bpf_ktime_get_ns(void)
         ts,
         syscall,
         pid,
-        pname,
+        pname_bytes,
     };
     info!(&ctx, "ts: {}ns | id: {} | pid: {} | pname: {}",bpf_ktime_get_ns() - ts,syscall,pid,pname);
     EVENTS.output(&ctx, &logs, 0);
