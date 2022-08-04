@@ -2,7 +2,7 @@ all: run
 
 run: build_ebpf 
 	cargo build
-	cargo xtask run
+	cargo xtask run -r sudo
 
 bootstrap:
 	rustup install nightly
