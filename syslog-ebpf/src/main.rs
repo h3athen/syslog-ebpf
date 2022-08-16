@@ -19,6 +19,9 @@ static mut EVENTS: PerfEventArray<SysCallLog> =
 
 
 /*---------------------------------------------------------------------------*/    
+// tracepoint is attached to raw_syscalls/sys_enter
+// log: timestamp, syscall id, pid, process name and map to EVENTS
+// send EVENTS to userspace
 #[tracepoint(name="syslog")]
 pub fn syslog(ctx: TracePointContext) -> u32 {
     match unsafe { try_syslog(ctx) } {
@@ -41,11 +44,11 @@ u64 bpf_ktime_get_ns(void)
 
               Return Current ktime.
 */
-    let ts          = bpf_ktime_get_ns();
-    let syscall     = args[1] as u64;
-    let pid         = ctx.pid();
+    let ts             = bpf_ktime_get_ns();
+    let syscall        = args[1] as u32;
+    let pid            = ctx.pid();
     let pname_bytes= ctx.command().map_err(|e| e as u32)?;
-    let pname     = core::str::from_utf8_unchecked(&pname_bytes[..]);
+    // let pname_slice         = core::str::from_utf8_unchecked(&pname_bytes[..]);
 
     /*
         ts    : time stamp
@@ -59,7 +62,7 @@ u64 bpf_ktime_get_ns(void)
         pid,
         pname_bytes,
     };
-    info!(&ctx, "ts: {}ns | id: {} | pid: {} | pname: {}",bpf_ktime_get_ns() - ts,syscall,pid,pname);
+    // info!(&ctx, "ts: {}ns | id: {} | pid: {} | pname: {}",bpf_ktime_get_ns() - ts,syscall,pid,pname);
     EVENTS.output(&ctx, &logs, 0);
     Ok(0)
 }
