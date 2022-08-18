@@ -1,10 +1,16 @@
 use aya::{include_bytes_aligned, Bpf};
-use aya::programs::TracePoint;
+use aya::{
+    programs::TracePoint,util::online_cpus,maps::perf::AsyncPerfEventArray,
+};
 use aya_log::BpfLogger;
+use bytes::BytesMut;
 use clap::Parser;
 use log::info;
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
-use tokio::signal;
+use syslog_common::SysCallLog;
+use tokio::{
+    signal, task,
+};
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -41,6 +47,28 @@ async fn main() -> Result<(), anyhow::Error> {
     let program: &mut TracePoint = bpf.program_mut("syslog").unwrap().try_into()?;
     program.load()?;
     program.attach("raw_syscalls", "sys_enter")?;
+
+    /* ------------------------------------ */
+    let mut perf_array = AsyncPerfEventArray::try_from(bpf.map_mut("EVENTS")?)?;
+    for cpu_id in online_cpus()? {
+        let mut buf = perf_array.open(cpu_id, None)?;
+        task::spawn(async move {
+            let mut buffers = (0..10)
+                .map(|_| BytesMut::with_capacity(1024))
+                .collect::<Vec<_>>();
+            loop {
+                let events = buf.read_events(&mut buffers).await.unwrap();
+                for i in 0..events.read {
+                    let buf = &mut buffers[i];
+                    let ptr = buf.as_ptr() as *const SysCallLog;
+                    let data = unsafe { ptr.read_unaligned() };
+                    
+                    let pname= core::str::from_utf8_unchecked(&data.pname_bytes[..]);
+                    println!("ts: {}ns | id: {} | pid: {} | pname: {}", data.ts, data.syscall, data.pid, pname);
+                }
+            }
+        });
+    }
 
     info!("Waiting for Ctrl-C...");
     signal::ctrl_c().await?;

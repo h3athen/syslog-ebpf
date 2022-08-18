@@ -8,6 +8,7 @@ aya-bpf = { git = "https://github.com/aya-rs/aya", branch = "main" }
 aya-log-ebpf = { git = "https://github.com/aya-rs/aya-log", branch = "main" }
 syslog-common = { path = "../syslog-common" }
 
+
 [[bin]]
 name = "syslog"
 path = "src/main.rs"

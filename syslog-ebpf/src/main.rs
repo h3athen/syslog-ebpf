@@ -48,7 +48,7 @@ u64 bpf_ktime_get_ns(void)
     let syscall        = args[1] as u32;
     let pid            = ctx.pid();
     let pname_bytes= ctx.command().map_err(|e| e as u32)?;
-    // let pname_slice         = core::str::from_utf8_unchecked(&pname_bytes[..]);
+    // let pname         = core::str::from_utf8_unchecked(&pname_bytes[..]);
 
     /*
         ts    : time stamp
