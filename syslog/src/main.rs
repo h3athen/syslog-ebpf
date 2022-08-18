@@ -19,7 +19,7 @@ struct Opt {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let opt = Opt::parse();
+    let _opt = Opt::parse();
 
     TermLogger::init(
         LevelFilter::Debug,
@@ -63,7 +63,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     let ptr = buf.as_ptr() as *const SysCallLog;
                     let data = unsafe { ptr.read_unaligned() };
                     
-                    let pname= core::str::from_utf8_unchecked(&data.pname_bytes[..]);
+                    let pname= unsafe { core::str::from_utf8_unchecked(&data.pname_bytes[..]) };
                     println!("ts: {}ns | id: {} | pid: {} | pname: {}", data.ts, data.syscall, data.pid, pname);
                 }
             }
