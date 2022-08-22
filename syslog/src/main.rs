@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::io;
+use csv;
 use aya::{include_bytes_aligned, Bpf};
 use aya::{
     programs::TracePoint,util::online_cpus,maps::perf::AsyncPerfEventArray,
@@ -50,6 +53,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     /* ------------------------------------ */
     let mut perf_array = AsyncPerfEventArray::try_from(bpf.map_mut("EVENTS")?)?;
+
+    let mut writer     = csv::Writer::from_writer(io::stdout()); // Writer for stdout to csv
+    writer.write_record(&["time_stamp","syscall_id","pid","process_name"])?;
+
     for cpu_id in online_cpus()? {
         let mut buf = perf_array.open(cpu_id, None)?;
         task::spawn(async move {
@@ -64,7 +71,8 @@ async fn main() -> Result<(), anyhow::Error> {
                     let data = unsafe { ptr.read_unaligned() };
                     
                     let pname= unsafe { core::str::from_utf8_unchecked(&data.pname_bytes[..]) };
-                    println!("ts: {}ns | id: {} | pid: {} | pname: {}", data.ts, data.syscall, data.pid, pname);
+                    // println!("ts: {}ns | id: {} | pid: {} | pname: {}", data.ts, data.syscall, data.pid, pname);
+                    writer.write_record(&[data.ts,data.syscall,data.pid,pname])?;
                 }
             }
         });

@@ -44,10 +44,10 @@ u64 bpf_ktime_get_ns(void)
 
               Return Current ktime.
 */
-    let ts             = bpf_ktime_get_ns();
-    let syscall        = args[1] as u32;
-    let pid            = ctx.pid();
-    let pname_bytes= ctx.command().map_err(|e| e as u32)?;
+    let oldts             = bpf_ktime_get_ns();
+    let syscall        = args[1] as u64;
+    let pid            = ctx.pid().into();
+    let pname_bytes= ctx.command().map_err(|e| e as u64);
     // let pname         = core::str::from_utf8_unchecked(&pname_bytes[..]);
 
     /*
@@ -56,6 +56,7 @@ u64 bpf_ktime_get_ns(void)
         pid   : pid of process calling the syscall
         pname : process name
     */
+    let ts = bpf_ktime_get_ns() - oldts;
     let logs = SysCallLog {
         ts,
         syscall,
