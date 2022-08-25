@@ -22,7 +22,7 @@ struct Opt {
 }
 
 #[derive(Debug, Serialize)]
-struct CveLog {
+struct CsvLog {
     ts: u64,
     id: u32,
     pid:u32,
@@ -93,7 +93,7 @@ async fn main() -> Result<(), anyhow::Error> {
     task::spawn(async move {
         while let Some(data) = rx.recv().await {
             let pname = unsafe { String::from_utf8_unchecked(data.pname_bytes[..].to_vec()) };
-            writer.serialize(CveLog {
+            writer.serialize(CsvLog {
                                     ts: data.ts,
                                     id: data.syscall,
                                     pid: data.pid,
