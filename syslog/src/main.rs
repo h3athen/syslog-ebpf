@@ -61,6 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut writer     = csv::Writer::from_path("output.csv")?; // Writer for stdout to csv
 
+    // ---------------------------[OLD CODE]------------------
     // for cpu_id in online_cpus()? {
     //     let mut buf = perf_array.open(cpu_id, None)?;
     //     task::spawn(async move {
@@ -86,12 +87,12 @@ async fn main() -> Result<(), anyhow::Error> {
     //         }
     //     });
 
-    //going crazy +_+
-    let (tx, mut rx) = mpsc::channel(1024);
+    // ---------------------------[NEW CODE]--------------------
+    let (tx, mut rx) = mpsc::channel::<SysCallLog>(1024);
     let tx_writer = tx.clone();
     task::spawn(async move {
         while let Some(data) = rx.recv().await {
-            let pname = unsafe { String::from_utf8_unchecked(&data.pname_bytes[..]) };
+            let pname = unsafe { String::from_utf8_unchecked(data.pname_bytes[..].to_vec()) };
             writer.serialize(CveLog {
                                     ts: data.ts,
                                     id: data.syscall,
@@ -113,7 +114,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 let events = buf.read_events(&mut buffers).await.unwrap();
                 for buf in &buffers[..events.read] {
                     let data = unsafe { (buf.as_ptr() as *const SysCallLog).read_unaligned() };
-                    tx.send(data).expect("Channel closed");
+                    tx.send(data);
                 }
             }
         });
@@ -123,6 +124,5 @@ async fn main() -> Result<(), anyhow::Error> {
     signal::ctrl_c().await?;
     info!("Exiting...");
 
-    writer.flush();
     Ok(())
 }
