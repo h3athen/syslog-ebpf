@@ -1,4 +1,6 @@
 
+use std::io;
+
 use csv;
 use serde::Serialize;
 use aya::{include_bytes_aligned, Bpf};
@@ -57,39 +59,14 @@ async fn main() -> Result<(), anyhow::Error> {
     program.attach("raw_syscalls", "sys_enter")?;
 
     /* ------------------------------------ */
+    // mapping to the EVENTS
     let mut perf_array = AsyncPerfEventArray::try_from(bpf.map_mut("EVENTS")?)?;
 
-    let mut writer     = csv::Writer::from_path("output.csv")?; // Writer for stdout to csv
+    // defining writer path to file
+    let mut writer = csv::Writer::from_path("output.csv")?;
 
-    // ---------------------------[OLD CODE]------------------
-    // for cpu_id in online_cpus()? {
-    //     let mut buf = perf_array.open(cpu_id, None)?;
-    //     task::spawn(async move {
-    //         let mut buffers = (0..10)
-    //             .map(|_| BytesMut::with_capacity(1024))
-    //             .collect::<Vec<_>>();
-    //         loop {
-    //             let events = buf.read_events(&mut buffers).await.unwrap();
-    //             for i in 0..events.read {
-    //                 let buf = &mut buffers[i];
-    //                 let ptr = buf.as_ptr() as *const SysCallLog;
-    //                  let data = unsafe { ptr.read_unaligned() };
-                    
-    //                 let pname= unsafe { core::str::from_utf8_unchecked(&data.pname_bytes[..]) };
-    //                 // println!("ts: {}ns | id: {} | pid: {} | pname: {}", data.ts, data.syscall, data.pid, pname);
-    //                 writer.serialize(CveLog {
-    //                     ts: data.ts,
-    //                     id: data.syscall,
-    //                     pid: data.pid,
-    //                     pname
-    //                 });
-    //             }
-    //         }
-    //     });
-
-    // ---------------------------[NEW CODE]--------------------
     let (tx, mut rx) = mpsc::channel::<SysCallLog>(1024);
-    let tx_writer = tx.clone();
+    let _tx_writer = tx.clone();
     task::spawn(async move {
         while let Some(data) = rx.recv().await {
             let pname = unsafe { String::from_utf8_unchecked(data.pname_bytes[..].to_vec()) };
@@ -97,9 +74,9 @@ async fn main() -> Result<(), anyhow::Error> {
                                     ts: data.ts,
                                     id: data.syscall,
                                     pid: data.pid,
-                                    pname: pname,
-                                });
-            writer.flush();
+                                    pname,
+                                }).unwrap();
+            writer.flush().unwrap();
         }
     });
 
@@ -114,7 +91,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 let events = buf.read_events(&mut buffers).await.unwrap();
                 for buf in &buffers[..events.read] {
                     let data = unsafe { (buf.as_ptr() as *const SysCallLog).read_unaligned() };
-                    tx.send(data);
+                    tx.send(data).await;
                 }
             }
         });

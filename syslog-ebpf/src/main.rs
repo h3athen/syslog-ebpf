@@ -9,7 +9,7 @@ use aya_bpf::{
     maps::{PerfEventArray},
     programs::TracePointContext, BpfContext,
 };
-use aya_log_ebpf::info;
+use aya_log_ebpf::info; // dont remove this even if it gives an "unused" warning else you'll get into a very deep hoax of error
 use syslog_common::SysCallLog;
 
 // Create EVENTS of PerfEventArray type to map struct SysCallLog
