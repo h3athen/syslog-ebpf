@@ -23,6 +23,7 @@ struct Opt {
     
 }
 
+// Struct to write log to CSV
 #[derive(Debug, Serialize)]
 struct CsvLog {
     ts: u64,
@@ -33,6 +34,7 @@ struct CsvLog {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    println!("[+] Generating output.csv");
     let _opt = Opt::parse();
 
     TermLogger::init(
@@ -58,7 +60,6 @@ async fn main() -> Result<(), anyhow::Error> {
     program.load()?;
     program.attach("raw_syscalls", "sys_enter")?;
 
-    /* ------------------------------------ */
     // mapping to the EVENTS
     let mut perf_array = AsyncPerfEventArray::try_from(bpf.map_mut("EVENTS")?)?;
 
@@ -97,9 +98,8 @@ async fn main() -> Result<(), anyhow::Error> {
         });
     }
 
-    info!("Waiting for Ctrl-C...");
+    println!("[+] Finished Logging hit Ctrl-C to exit...");
     signal::ctrl_c().await?;
-    info!("Exiting...");
-
+    println!("[+] Exiting");
     Ok(())
 }
