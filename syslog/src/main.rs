@@ -30,6 +30,7 @@ struct CsvLog {
     ts: u64,
     id: u32,
     pid:u32,
+    pname:String,
     path: String,
 }
 
@@ -72,9 +73,6 @@ async fn main() -> Result<(), anyhow::Error> {
     task::spawn(async move {
         while let Some(data) = rx.recv().await {
             let pname = unsafe { String::from_utf8_unchecked(data.pname_bytes[..].to_vec()) };
-            let process = procfs::process::Process::new(data.pid as i32).unwrap();
-            let exe = process.exe().unwrap();
-            let path = exe.into_os_string().into_string().unwrap();
             // #[test] https://docs.rs/procfs/0.5.2/src/procfs/process.rs.html#1937
             // fn test_proc_exe() {
             //     let myself = Process::myself().unwrap();
@@ -82,11 +80,24 @@ async fn main() -> Result<(), anyhow::Error> {
             //     let std_exe = std::env::current_exe().unwrap();
             //     assert_eq!(proc_exe, std_exe);
             // }
+            let process = procfs::process::Process::new(data.pid as i32).unwrap();
+            let exe = process.exe().unwrap();
+            let path = exe.into_os_string().into_string().unwrap();
+
+            // Write to CSV
+            /*
+                ts    : time stamp
+                id    : syscall id
+                pid   : pid of process calling the syscall
+                pname : process name
+                path  : path to actual binary
+            */
             writer.serialize(CsvLog {
                                     ts: data.ts,
                                     id: data.syscall,
                                     pid: data.pid,
-                                    path,
+                                    pname,
+                                    path: path,
                                 }).unwrap();
             writer.flush().unwrap();
         }
