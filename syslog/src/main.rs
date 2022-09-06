@@ -17,6 +17,7 @@ use tokio::{
     signal, task,
 };
 use tokio::sync::mpsc;
+use procfs::process;
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -29,7 +30,7 @@ struct CsvLog {
     ts: u64,
     id: u32,
     pid:u32,
-    pname: String,
+    path: String,
 }
 
 #[tokio::main]
@@ -71,11 +72,21 @@ async fn main() -> Result<(), anyhow::Error> {
     task::spawn(async move {
         while let Some(data) = rx.recv().await {
             let pname = unsafe { String::from_utf8_unchecked(data.pname_bytes[..].to_vec()) };
+            let process = procfs::process::Process::new(data.pid as i32).unwrap();
+            let exe = process.exe().unwrap();
+            let path = exe.into_os_string().into_string().unwrap();
+            // #[test] https://docs.rs/procfs/0.5.2/src/procfs/process.rs.html#1937
+            // fn test_proc_exe() {
+            //     let myself = Process::myself().unwrap();
+            //     let proc_exe = myself.exe().unwrap();
+            //     let std_exe = std::env::current_exe().unwrap();
+            //     assert_eq!(proc_exe, std_exe);
+            // }
             writer.serialize(CsvLog {
                                     ts: data.ts,
                                     id: data.syscall,
                                     pid: data.pid,
-                                    pname,
+                                    path,
                                 }).unwrap();
             writer.flush().unwrap();
         }
