@@ -10,7 +10,7 @@ https://aya-rs.dev/book/start/development/#starting-a-new-project
 Check the `Makefile`. `make` command will build and run the binary. 
 
 ## What is Syslog
-syslog logs all the syscalls called by the running processes in a system by writing into a `CSV file`.<br>
+syslog logs all the syscalls called by the running processes in a system and writes into a `CSV file`.<br>
 
 Output Format:
 ```
