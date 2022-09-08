@@ -44,7 +44,7 @@ u64 bpf_ktime_get_ns(void)
 
               Return Current ktime.
 */
-    let oldts          = bpf_ktime_get_ns();
+    let timestamp      = bpf_ktime_get_ns();
     let syscall        = args[1] as u32;
     let pid            = ctx.pid();
     let pname_bytes= ctx.command().map_err(|e| e as u32)?;
@@ -56,7 +56,8 @@ u64 bpf_ktime_get_ns(void)
         pid   : pid of process calling the syscall
         pname : process name
     */
-    let ts = bpf_ktime_get_ns() - oldts;
+    // let ts = bpf_ktime_get_ns() - oldts;
+    let ts = timestamp;
     let logs = SysCallLog {
         ts,
         syscall,

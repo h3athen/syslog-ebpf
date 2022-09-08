@@ -18,6 +18,8 @@ use tokio::{
 };
 use tokio::sync::mpsc;
 use procfs::process;
+use std;
+use nix;
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -85,6 +87,10 @@ async fn main() -> Result<(), anyhow::Error> {
             let exe = process.exe().unwrap();
             let path = exe.into_os_string().into_string().unwrap();
 
+            // Calculate unix timestamp
+            let boot_time = std::time::Duration::from(nix::time::clock_gettime(nix::time::ClockId::CLOCK_MONOTONIC)).as_nanos();
+            
+
             // Write to CSV
             /*
                 ts    : time stamp
@@ -94,11 +100,11 @@ async fn main() -> Result<(), anyhow::Error> {
                 path  : path to actual binary
             */
             writer.serialize(CsvLog {
-                                    ts: data.ts,
+                                    ts: timestamp,
                                     id: data.syscall,
                                     pid: data.pid,
                                     pname,
-                                    path: path,
+                                    path,
                                 }).unwrap();
             writer.flush().unwrap();
         }
