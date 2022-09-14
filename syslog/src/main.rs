@@ -88,8 +88,10 @@ async fn main() -> Result<(), anyhow::Error> {
             let path = exe.into_os_string().into_string().unwrap();
 
             // Calculate unix timestamp
-            let boot_time = std::time::Duration::from_nanos(nix::time::clock_gettime(nix::time::ClockId::CLOCK_MONOTONIC).unwrap().tv_nsec() as u64);
-
+            let nsec           = nix::time::clock_gettime(nix::time::ClockId::CLOCK_MONOTONIC).unwrap().tv_nsec() as u64;
+            let boot_time = std::time::Duration::from_nanos(nsec);
+            let ktime          = data.ts;
+            let timestamp      = (ktime + nsec) / 1000000000;
 
             // Write to CSV
             /*
