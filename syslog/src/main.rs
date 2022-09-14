@@ -91,11 +91,12 @@ async fn main() -> Result<(), anyhow::Error> {
             let nsec           = nix::time::clock_gettime(nix::time::ClockId::CLOCK_MONOTONIC).unwrap().tv_nsec() as u64;
             let boot_time = std::time::Duration::from_nanos(nsec);
             let ktime          = data.ts;
-            let timestamp      = (ktime + nsec) / 1000000000;
+            println!("{} {}",boot_time.as_nanos(),ktime);
+            let timestamp      = ktime - boot_time.as_secs();
 
             // Write to CSV
             /*
-                ts    : time stamp
+                ts    : time stamps
                 id    : syscall id
                 pid   : pid of process calling the syscall
                 pname : process name
