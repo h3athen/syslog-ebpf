@@ -18,8 +18,7 @@ use tokio::{
 };
 use tokio::sync::mpsc;
 use procfs::process;
-use std;
-use nix;
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -86,13 +85,12 @@ async fn main() -> Result<(), anyhow::Error> {
             let process = procfs::process::Process::new(data.pid as i32).unwrap();
             let exe = process.exe().unwrap();
             let path = exe.into_os_string().into_string().unwrap();
-
-            // Calculate unix timestamp
-            let nsec           = nix::time::clock_gettime(nix::time::ClockId::CLOCK_MONOTONIC).unwrap().tv_nsec() as u64;
-            let boot_time = std::time::Duration::from_nanos(nsec);
-            let ktime          = data.ts;
-            println!("{} {}",boot_time.as_nanos(),ktime);
-            let timestamp      = ktime - boot_time.as_secs();
+            
+            // Calculate the `data.ts` i.e time elapse since boot in epoch format - Uncomment if needed 
+            // let time_of_boot = SystemTime::now() - Duration::from_nanos(data.ts);
+            // let time_since_epoch = time_of_boot.duration_since(SystemTime::UNIX_EPOCH).expect("error").as_secs();
+            // let elapse_insec = Duration::from_nanos(data.ts).as_secs();
+            // let timestamp = time_since_epoch + elapse_insec;
 
             // Write to CSV
             /*
@@ -103,7 +101,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 path  : path to actual binary
             */
             writer.serialize(CsvLog {
-                                    ts: timestamp,
+                                    ts: data.ts,
                                     id: data.syscall,
                                     pid: data.pid,
                                     pname,
